@@ -64,13 +64,13 @@ struct CellularPotts{
         double H;
         double T = 1;
 
-        const uint16_t EMPTY = std::numeric_limits<uint16_t>::max();
+        constexpr static uint16_t EMPTY = std::numeric_limits<uint16_t>::max();
         std::vector<Cell> cells;
 
-        double target_area;
-        double lambda_area;
-        double target_perim;
-        double lambda_perim;
+        double target_area = 10;
+        double lambda_area = 10;
+        double target_perim = 10;
+        double lambda_perim = 1;
 
 
         CellularPotts(size_t width, size_t height);
@@ -78,7 +78,7 @@ struct CellularPotts{
         size_t sample_x();
         size_t sample_y();
         bool sample_bool();
-        uint8_t sample_neighbor_state(size_t x, size_t y);
+        uint16_t sample_neighbor_state(size_t x, size_t y);
         void MH_step();
 
         void initialize_cells_attributes();
@@ -110,7 +110,7 @@ bool CellularPotts::sample_bool(){
         return sample_uniform(r_gen) < 0.5;
 }
 
-uint8_t CellularPotts::sample_neighbor_state(size_t x, size_t y){
+uint16_t CellularPotts::sample_neighbor_state(size_t x, size_t y){
         if (sample_bool()){
                 if (x == 0) return lattice(x+1,y);
                 if (x == lattice.width-1) return lattice(x-1,y);
@@ -135,21 +135,27 @@ void CellularPotts::update_lattice(size_t x, size_t y,uint16_t new_state){
         int16_t perim_given = 4 - (2*perim_point_old);
         if (old_state != EMPTY) cells[old_state].perim -= perim_given;
         if (new_state != EMPTY) cells[new_state].perim += perim_given;
+        lattice(x,y) = new_state;
 }
 
 void CellularPotts::MH_step(){
         size_t x = sample_x();
         size_t y = sample_y();
         uint16_t current_state = lattice(x,y);
+        if (current_state == 0){
+                // asm("int3");
+        }
         uint16_t new_state = sample_neighbor_state(x,y);
         update_lattice(x,y,new_state);
-        lattice(x,y) = new_state;
         double H_new = compute_energy();
         double delta_H = H_new - H;
         double r = sample_uniform(r_gen);
         if (r >= std::exp(- delta_H/T)){
                 // dont't accept transition : revert state
                 update_lattice(x,y,current_state);
+        }
+        else {
+                H = H_new;
         }
 }
 
@@ -213,5 +219,9 @@ int main(){
         cp.lattice(5,5) = 0;
         cp.cells.push_back(Cell(0));
         cp.initialize_cells_attributes();
+        cp.H = cp.compute_energy();
+        for (size_t i = 0; i< 1000; i++){
+                cp.MH_step();
+        }
         return 1;
 }
