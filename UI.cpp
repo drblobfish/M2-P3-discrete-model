@@ -19,7 +19,10 @@ char iter_per_frame_str[10] = "";
 bool running = false;
 bool step_by_step = false;
 
-void drawCellWall(void){
+uint16_t cell_focus = CellularPotts::EMPTY;
+char cell_focus_info_str[100] = "";
+
+void draw_cell_wall(void){
         for (size_t x = 0; x < cp.lattice.width; x++){
                 for (size_t y = 0; y < cp.lattice.height; y++){
                         if (cp.lattice(x,y) != CellularPotts::EMPTY)
@@ -38,6 +41,24 @@ void drawCellWall(void){
                         }
                 }
         }
+}
+
+void process_click_on_cell(void){
+        if (!IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) return;
+        Vector2 xy = GetMousePosition();
+        if (!CheckCollisionPointRec(xy,cells_rec)) return;
+        size_t x = (size_t) ((xy.x-cells_rec.x)/box_size);
+        size_t y = (size_t) ((xy.y-cells_rec.y)/box_size);
+        cell_focus = cp.lattice(x,y);
+}
+
+void draw_cell_info(void){
+        if (cell_focus == CellularPotts::EMPTY) return;
+        sprintf(cell_focus_info_str,"Cell %d\narea = %d\nperimeter = %d",
+                        cell_focus,
+                        cp.cells[cell_focus].area,
+                        cp.cells[cell_focus].perim2);
+        GuiLabel((Rectangle){ gui_rec.x, gui_rec.y+4*PADDING, gui_rec.width, 5*PADDING }, cell_focus_info_str);
 }
 
 int main(void)
@@ -73,6 +94,7 @@ int main(void)
                 // Draw
                 BeginDrawing();
                 ClearBackground(RAYWHITE);
+                process_click_on_cell();
                 DrawRectangleLinesEx(cells_rec, 2.0, BLACK);
                 GuiButton((Rectangle){ gui_rec.x, gui_rec.y, 3*PADDING, PADDING }, "reset");
                 if (running){
@@ -87,7 +109,8 @@ int main(void)
                 GuiSlider(Rectangle{gui_rec.x+ 60,gui_rec.y+ 2* PADDING,gui_rec.width-60,PADDING}, "iter/frame",iter_per_frame_str, &iter_per_frame_f, 1, 1e4);
                 iter_per_frame = (int) iter_per_frame_f;
                 sprintf(iter_per_frame_str,"%d",iter_per_frame);
-                drawCellWall();
+                draw_cell_info();
+                draw_cell_wall();
 
                 EndDrawing();
         }
