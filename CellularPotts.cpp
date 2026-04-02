@@ -1,20 +1,4 @@
-#include <cstdint>
-#include <vector>
-#include <random>
-
-template<typename T>
-struct Array2d{
-        size_t width;
-        size_t height;
-        std::vector<T> data;
-
-        Array2d();
-        Array2d(size_t width,size_t height);
-        Array2d(size_t width,size_t height,T init);
-
-        const T& operator()(size_t x, size_t y) const;
-        T& operator()(size_t x, size_t y);
-};
+#include "CellularPotts.hpp"
 
 template<typename T>
 Array2d<T>::Array2d() : width{0}, height{0},data{0}
@@ -39,57 +23,9 @@ T& Array2d<T>::operator()(size_t x, size_t y){
         return data[x*width+y];
 }
 
-struct Cell{
-        uint16_t type;
-        uint16_t area;
-        uint16_t perim;
-        size_t last_point_x;
-        size_t last_point_y;
 
-        Cell(uint16_t type);
-};
-
-Cell::Cell(uint16_t type) : type{type}, area{0},perim{0},last_point_x{0},last_point_y{0}{
+Cell::Cell(uint16_t type) : type{type}, area{0},perim{0},perim2{0},last_point_x{0},last_point_y{0}{
 }
-
-
-struct CellularPotts{
-        Array2d<uint16_t> lattice;
- 
-        std::random_device random_dev;
-        std::default_random_engine r_gen {random_dev()};
-        std::uniform_real_distribution<double> sample_uniform {};
-        std::uniform_int_distribution<size_t> _sample_int;
-
-        double H;
-        double T = 1;
-
-        constexpr static uint16_t EMPTY = std::numeric_limits<uint16_t>::max();
-        std::vector<Cell> cells;
-
-        double target_area = 10;
-        double lambda_area = 10;
-        double target_perim = 10;
-        double lambda_perim = 1;
-
-
-        CellularPotts(size_t width, size_t height);
-        size_t sample_int(size_t max);
-        size_t sample_x();
-        size_t sample_y();
-        bool sample_bool();
-        uint16_t sample_neighbor_state(size_t x, size_t y);
-        void MH_step();
-
-        void initialize_cells_attributes();
-        void initialize_cell_attributes(Cell &cell);
-        double compute_energy();
-        double compute_area_energy();
-        double compute_perim_energy();
-        void update_lattice(size_t x, size_t y,uint16_t new_state);
-        uint16_t number_different_neighbor(size_t x, size_t y, uint16_t type);
-
-};
 
 CellularPotts::CellularPotts(size_t width, size_t height) : lattice{width,height,EMPTY}
 {}
@@ -125,6 +61,60 @@ uint16_t CellularPotts::sample_neighbor_state(size_t x, size_t y){
         }
 }
 
+void CellularPotts::remove_perim2(size_t x, size_t y){
+        if (
+                lattice(x,y) != EMPTY &&
+                number_different_neighbor(x,y,lattice(x,y)) != 0
+                ) cells[lattice(x,y)].perim2--;
+        if (
+                x!=0 && 
+                lattice(x-1,y) != EMPTY &&
+                number_different_neighbor(x-1,y,lattice(x-1,y)) != 0
+                ) cells[lattice(x-1,y)].perim2--;
+        if (
+                y!=0 &&
+                lattice(x,y-1) != EMPTY &&
+                number_different_neighbor(x,y-1,lattice(x,y-1)) != 0
+                ) cells[lattice(x,y-1)].perim2--;
+        if (
+                x!=lattice.width-1 &&
+                lattice(x+1,y) != EMPTY &&
+                number_different_neighbor(x+1,y,lattice(x+1,y)) != 0
+                ) cells[lattice(x+1,y)].perim2--;
+        if (
+                y!=lattice.height-1 &&
+                lattice(x,y+1) != EMPTY &&
+                number_different_neighbor(x,y+1,lattice(x,y+1)) != 0
+                ) cells[lattice(x,y+1)].perim2--;
+}
+
+void CellularPotts::add_perim2(size_t x, size_t y){
+        if (
+                lattice(x,y) != EMPTY &&
+                number_different_neighbor(x,y,lattice(x,y)) != 0
+                ) cells[lattice(x,y)].perim2++;
+        if (
+                x!=0 && 
+                lattice(x-1,y) != EMPTY &&
+                number_different_neighbor(x-1,y,lattice(x-1,y)) != 0
+                ) cells[lattice(x-1,y)].perim2++;
+        if (
+                y!=0 &&
+                lattice(x,y-1) != EMPTY &&
+                number_different_neighbor(x,y-1,lattice(x,y-1)) != 0
+                ) cells[lattice(x,y-1)].perim2++;
+        if (
+                x!=lattice.width-1 &&
+                lattice(x+1,y) != EMPTY &&
+                number_different_neighbor(x+1,y,lattice(x+1,y)) != 0
+                ) cells[lattice(x+1,y)].perim2++;
+        if (
+                y!=lattice.height-1 &&
+                lattice(x,y+1) != EMPTY &&
+                number_different_neighbor(x,y+1,lattice(x,y+1)) != 0
+                ) cells[lattice(x,y+1)].perim2++;
+}
+
 void CellularPotts::update_lattice(size_t x, size_t y,uint16_t new_state){
         uint16_t old_state = lattice(x,y);
         // update area : one unit given from old_state to new_state
@@ -135,7 +125,11 @@ void CellularPotts::update_lattice(size_t x, size_t y,uint16_t new_state){
         int16_t perim_given = 4 - (2*perim_point_old);
         if (old_state != EMPTY) cells[old_state].perim -= perim_given;
         if (new_state != EMPTY) cells[new_state].perim += perim_given;
+
+        remove_perim2(x,y);
+        //update lattice
         lattice(x,y) = new_state;
+        add_perim2(x,y);
 }
 
 void CellularPotts::MH_step(){
@@ -182,7 +176,11 @@ void CellularPotts::initialize_cell_attributes(Cell &cell){
                                 cell.last_point_x = x;
                                 cell.last_point_y = y;
                                 cell.area++;
-                                cell.perim += number_different_neighbor(x,y,cell.type);
+                                uint16_t nb_diff_neigh = number_different_neighbor(x,y,cell.type);
+                                cell.perim +=  nb_diff_neigh;
+                                if (nb_diff_neigh != 0){
+                                        cell.perim2 ++;
+                                }
                                 return;
                         }
                 }
@@ -201,7 +199,7 @@ double CellularPotts::compute_area_energy(){
 double CellularPotts::compute_perim_energy(){
         double H_perim = 0;
         for (Cell& cell : cells){
-                double perim_diff = cell.perim - target_perim;
+                double perim_diff = cell.perim2 - target_perim;
                 H_perim = perim_diff*perim_diff;
         }
         return lambda_perim * H_perim;
@@ -209,19 +207,8 @@ double CellularPotts::compute_perim_energy(){
 
 double CellularPotts::compute_energy(){
         double H_area = compute_area_energy();
-        double H_perim = compute_area_energy();
+        double H_perim = compute_perim_energy();
 
         return H_area + H_perim;
 }
 
-int main(){
-        CellularPotts cp {10,10};
-        cp.lattice(5,5) = 0;
-        cp.cells.push_back(Cell(0));
-        cp.initialize_cells_attributes();
-        cp.H = cp.compute_energy();
-        for (size_t i = 0; i< 1000; i++){
-                cp.MH_step();
-        }
-        return 1;
-}
