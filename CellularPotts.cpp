@@ -36,7 +36,7 @@ Cell::Cell(uint16_t cell_id) :
         last_point_y{0}
 {}
 
-CellularPotts::CellularPotts(size_t width, size_t height) : lattice{width,height,EMPTY}
+CellularPotts::CellularPotts(size_t width, size_t height) : lattice{width,height,EMPTY},S_concentration{width,height,0},S_concentration_back{width,height,0}
 {}
 
 size_t CellularPotts::sample_int(size_t max) {
@@ -246,9 +246,7 @@ void CellularPotts::MH_step(){
         size_t x = sample_x();
         size_t y = sample_y();
         uint16_t current_state = lattice(x,y);
-        if (current_state == 0){
-                // asm("int3");
-        }
+        // asm("int3");
         uint16_t new_state = sample_neighbor_state(x,y);
         update_lattice(x,y,new_state);
         double H_new = compute_energy();
@@ -260,6 +258,10 @@ void CellularPotts::MH_step(){
         }
         else {
                 H = H_new;
+        }
+        if ((S_step_counter++) == S_step_freq){
+                S_step_counter = 0;
+                S_step();
         }
 }
 
@@ -366,4 +368,30 @@ double CellularPotts::compute_energy(){
 
         return H_area + H_perim + H_adh;
 }
+
+void CellularPotts::S_step_point(size_t x, size_t y){
+        double change = 0;
+        if (x !=0) change += S_concentration(x-1,y);
+        if (y !=0) change += S_concentration(x,y-1);
+        if (x !=lattice.width-1) change += S_concentration(x+1,y);
+        if (y !=lattice.height-1) change += S_concentration(x,y+1);
+        change += - 4*S_concentration(x,y);
+        change *= S_diffusion;
+        change += - S_decay * S_concentration(x,y);
+        if (lattice(x,y) != EMPTY) change += S_emit;
+        S_concentration_back(x,y) = S_concentration(x,y) + S_dt * change;
+        if (S_concentration_back(x,y) > S_concentration_max) S_concentration_max = S_concentration_back(x,y);
+}
+
+void CellularPotts::S_step(){
+        S_concentration_max = 0;
+        for(size_t x = 0; x<lattice.width; x++){
+                for (size_t y = 0; y<lattice.height; y++){
+                        S_step_point(x,y);
+                }
+        }
+        printf("max S concentration = %f\n",S_concentration_max);
+        std::swap(S_concentration.data,S_concentration_back.data);
+}
+
 

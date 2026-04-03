@@ -13,22 +13,32 @@ CellularPotts cp {100,100};
 Rectangle cells_rec = {0};
 Rectangle gui_rec = {0};
 
-float iter_per_frame_f = 100;
-int iter_per_frame = 100;
+float iter_per_frame_f = 1;
+int iter_per_frame = 1;
 char iter_per_frame_str[10] = "";
 bool running = false;
 bool step_by_step = false;
+bool reset = false;
 
 uint16_t cell_id_focus = CellularPotts::EMPTY;
 char cell_id_focus_info_str[100] = "";
 
-void draw_cells(void){
+RenderTexture2D cell_texture;
+
+void draw_cells_texture(void){
+        BeginTextureMode(cell_texture);
         for (size_t x = 0; x < cp.lattice.width; x++){
                 for (size_t y = 0; y < cp.lattice.height; y++){
-                        if (cp.lattice(x,y) != CellularPotts::EMPTY)
-                                DrawRectangle(x*box_size,y*box_size,box_size,box_size,PINK);
+                        if (cp.lattice(x,y) != CellularPotts::EMPTY){
+                                DrawRectangle(x,y,1,1,PINK);
+                        }
+                        else {
+                                DrawRectangle(x,y,1,1,
+                                        ColorLerp(BLACK,SKYBLUE,cp.S_concentration(x,y)/cp.S_concentration_max));
+                        }
                 }
         }
+        EndTextureMode();
 }
 void draw_cell_walls(void){
         for (size_t x = 0; x < cp.lattice.width; x++){
@@ -74,13 +84,16 @@ int main(void)
 {
         InitWindow(screenWidth, screenHeight, "Cellular Potts Model");
         SetTargetFPS(60);
-
-        cp.initialize_board();
-        cp.initialize_cells_attributes();
-        cp.H = cp.compute_energy();
+        cell_texture = LoadRenderTexture(cp.lattice.width, cp.lattice.height);
 
         while (!WindowShouldClose())
         {
+                if (reset){
+                        cp.initialize_board();
+                        cp.initialize_cells_attributes();
+                        cp.H = cp.compute_energy();
+                        reset = false;
+                }
                 if (running){
                         for (size_t i = 0; i<iter_per_frame;i++){
                                 cp.MH_step();
@@ -100,11 +113,13 @@ int main(void)
                 gui_rec = Rectangle{.x = cells_rec.width+PADDING, .y = PADDING, .width = screenWidth - cells_rec.width - 2 * PADDING, .height = (float) screenHeight - PADDING};
 
                 // Draw
+                draw_cells_texture();
+
                 BeginDrawing();
                 ClearBackground(RAYWHITE);
                 process_click_on_cell();
                 DrawRectangleLinesEx(cells_rec, 2.0, BLACK);
-                GuiButton((Rectangle){ gui_rec.x, gui_rec.y, 3*PADDING, PADDING }, "reset");
+                reset = GuiButton((Rectangle){ gui_rec.x, gui_rec.y, 3*PADDING, PADDING }, "reset");
                 if (running){
                         running = !GuiButton((Rectangle){ gui_rec.x+4*PADDING, gui_rec.y, PADDING, PADDING }, GuiIconText(ICON_PLAYER_PAUSE,nullptr));
                 }else{
@@ -114,16 +129,22 @@ int main(void)
                         step_by_step = true;
                         running = true;
                 }
-                GuiSlider(Rectangle{gui_rec.x+ 60,gui_rec.y+ 2* PADDING,gui_rec.width-60,PADDING}, "iter/frame",iter_per_frame_str, &iter_per_frame_f, 1, 1e4);
+                GuiSlider(Rectangle{gui_rec.x+ 60,gui_rec.y+ 2* PADDING,gui_rec.width-70,PADDING}, "iter/frame",iter_per_frame_str, &iter_per_frame_f, 1, 1e3);
                 iter_per_frame = (int) iter_per_frame_f;
                 sprintf(iter_per_frame_str,"%d",iter_per_frame);
                 draw_cell_info();
-                draw_cells();
+                DrawTexturePro(
+                        cell_texture.texture,
+                        Rectangle{0,0,(float)cell_texture.texture.width,-(float)cell_texture.texture.height},
+                        cells_rec,
+                        Vector2{0,0},
+                        0,
+                        WHITE);
                 draw_cell_walls();
 
                 EndDrawing();
         }
-
+        UnloadRenderTexture(cell_texture);
         CloseWindow();
 
         return 0;

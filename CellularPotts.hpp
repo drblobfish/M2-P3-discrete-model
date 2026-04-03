@@ -53,6 +53,16 @@ struct CellularPotts{
         double J_in = 0;
         double J_nn = 0;
 
+        Array2d<double> S_concentration;
+        Array2d<double> S_concentration_back;
+        double S_diffusion = 100;
+        double S_decay = 1;
+        double S_emit = 1;
+        double S_dt = 1e-3;
+        double S_concentration_max = 1;
+        size_t S_step_freq = 10;
+        size_t S_step_counter = 0;
+
         CellularPotts(size_t width, size_t height);
         size_t sample_int(size_t max);
         size_t sample_x();
@@ -78,6 +88,9 @@ struct CellularPotts{
         void add_adh_zone(size_t x, size_t y);
         void update_lattice(size_t x, size_t y,uint16_t new_state);
         uint16_t number_different_neighbor(size_t x, size_t y, uint16_t cell_id);
+
+        void S_step();
+        void S_step_point(size_t x, size_t y);
 
 };
 
