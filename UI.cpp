@@ -75,7 +75,7 @@ int main(void)
         InitWindow(screenWidth, screenHeight, "Cellular Potts Model");
         SetTargetFPS(60);
 
-        cp.initialize_board(cp.lattice.width/2,cp.lattice.height/2,10,20);
+        cp.initialize_board();
         cp.initialize_cells_attributes();
         cp.H = cp.compute_energy();
 

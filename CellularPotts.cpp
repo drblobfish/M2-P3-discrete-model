@@ -70,7 +70,15 @@ uint16_t CellularPotts::sample_neighbor_state(size_t x, size_t y){
         }
 }
 
-void CellularPotts:: initialize_board(double center_x, double center_y, double radius, size_t nb_cells){
+void CellularPotts::initialize_board(){
+        initialize_tumor_core(lattice.width/2,lattice.height/2,10,20);
+        // lattice(50,50) = 0;
+        // lattice(60,60) = 1;
+        // cells.push_back(Cell(0));
+        // cells.push_back(Cell(1));
+}
+
+void CellularPotts:: initialize_tumor_core(double center_x, double center_y, double radius, size_t nb_cells){
         for (size_t x = 0; x<lattice.width;x++){
                 for (size_t y = 0; y<lattice.height; y++){
                         double dx = center_x - x;
@@ -325,7 +333,7 @@ double CellularPotts::compute_area_energy(){
         double H_area = 0;
         for (Cell& cell : cells){
                 double area_diff = cell.area - target_area;
-                H_area = area_diff*area_diff;
+                H_area += area_diff*area_diff;
         }
         return lambda_area * H_area;
 }
@@ -334,7 +342,7 @@ double CellularPotts::compute_perim_energy(){
         double H_perim = 0;
         for (Cell& cell : cells){
                 double perim_diff = cell.perim2 - target_perim;
-                H_perim = perim_diff*perim_diff;
+                H_perim += perim_diff*perim_diff;
         }
         return lambda_perim * H_perim;
 }
