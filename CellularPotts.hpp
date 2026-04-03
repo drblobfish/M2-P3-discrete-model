@@ -18,14 +18,17 @@ struct Array2d{
 };
 
 struct Cell{
-        uint16_t type;
+        uint16_t cell_id;
+        bool invasive;
         uint16_t area;
         uint16_t perim;
         uint16_t perim2;
+        uint16_t adhesion_to_non_invasive;
+        uint16_t adhesion_to_invasive;
         size_t last_point_x;
         size_t last_point_y;
 
-        Cell(uint16_t type);
+        Cell(uint16_t cell_id);
 };
 
 struct CellularPotts{
@@ -63,8 +66,13 @@ struct CellularPotts{
         double compute_perim_energy();
         void remove_perim2(size_t x, size_t y);
         void add_perim2(size_t x, size_t y);
+        void number_adh(size_t x, size_t y, uint16_t cell_id, uint16_t& adhesion_to_non_invasive, uint16_t& adhesion_to_invasive);
+        void remove_adh(size_t x, size_t y);
+        void remove_adh_zone(size_t x, size_t y);
+        void add_adh(size_t x, size_t y);
+        void add_adh_zone(size_t x, size_t y);
         void update_lattice(size_t x, size_t y,uint16_t new_state);
-        uint16_t number_different_neighbor(size_t x, size_t y, uint16_t type);
+        uint16_t number_different_neighbor(size_t x, size_t y, uint16_t cell_id);
 
 };
 

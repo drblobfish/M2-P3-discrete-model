@@ -24,8 +24,17 @@ T& Array2d<T>::operator()(size_t x, size_t y){
 }
 
 
-Cell::Cell(uint16_t type) : type{type}, area{0},perim{0},perim2{0},last_point_x{0},last_point_y{0}{
-}
+Cell::Cell(uint16_t cell_id) :
+        cell_id{cell_id},
+        invasive{false},
+        area{0},
+        perim{0},
+        perim2{0},
+        adhesion_to_non_invasive{0},
+        adhesion_to_invasive{0},
+        last_point_x{0},
+        last_point_y{0}
+{}
 
 CellularPotts::CellularPotts(size_t width, size_t height) : lattice{width,height,EMPTY}
 {}
@@ -87,7 +96,6 @@ void CellularPotts::remove_perim2(size_t x, size_t y){
                 number_different_neighbor(x,y+1,lattice(x,y+1)) != 0
                 ) cells[lattice(x,y+1)].perim2--;
 }
-
 void CellularPotts::add_perim2(size_t x, size_t y){
         if (
                 lattice(x,y) != EMPTY &&
@@ -115,6 +123,40 @@ void CellularPotts::add_perim2(size_t x, size_t y){
                 ) cells[lattice(x,y+1)].perim2++;
 }
 
+void CellularPotts::remove_adh(size_t x, size_t y){
+        uint16_t cell_id = lattice(x,y);
+        if (cell_id == EMPTY) return;
+        uint16_t adhesion_to_non_invasive = 0;
+        uint16_t adhesion_to_invasive = 0;
+        number_adh(x,y,cell_id,adhesion_to_non_invasive,adhesion_to_invasive);
+        cells[cell_id].adhesion_to_non_invasive -= adhesion_to_non_invasive;
+        cells[cell_id].adhesion_to_invasive -= adhesion_to_invasive;
+}
+
+void CellularPotts::add_adh(size_t x, size_t y){
+        uint16_t cell_id = lattice(x,y);
+        if (cell_id == EMPTY) return;
+        uint16_t adhesion_to_non_invasive = 0;
+        uint16_t adhesion_to_invasive = 0;
+        number_adh(x,y,cell_id,adhesion_to_non_invasive,adhesion_to_invasive);
+        cells[cell_id].adhesion_to_non_invasive += adhesion_to_non_invasive;
+        cells[cell_id].adhesion_to_invasive += adhesion_to_invasive;
+}
+void CellularPotts::remove_adh_zone(size_t x, size_t y){
+        remove_adh(x,y);
+        if (x!=0) remove_adh(x-1,y);
+        if (y!=0) remove_adh(x,y-1);
+        if (x!=lattice.width-1) remove_adh(x+1,y);
+        if (x!=lattice.height-1) remove_adh(x,y+1);
+}
+void CellularPotts::add_adh_zone(size_t x, size_t y){
+        add_adh(x,y);
+        if (x!=0) add_adh(x-1,y);
+        if (y!=0) add_adh(x,y-1);
+        if (x!=lattice.width-1) add_adh(x+1,y);
+        if (x!=lattice.height-1) add_adh(x,y+1);
+}
+
 void CellularPotts::update_lattice(size_t x, size_t y,uint16_t new_state){
         uint16_t old_state = lattice(x,y);
         // update area : one unit given from old_state to new_state
@@ -127,9 +169,11 @@ void CellularPotts::update_lattice(size_t x, size_t y,uint16_t new_state){
         if (new_state != EMPTY) cells[new_state].perim += perim_given;
 
         remove_perim2(x,y);
+        remove_adh_zone(x,y);
         //update lattice
         lattice(x,y) = new_state;
         add_perim2(x,y);
+        add_adh_zone(x,y);
 }
 
 void CellularPotts::MH_step(){
@@ -153,13 +197,45 @@ void CellularPotts::MH_step(){
         }
 }
 
-uint16_t CellularPotts::number_different_neighbor(size_t x, size_t y, uint16_t type){
+uint16_t CellularPotts::number_different_neighbor(size_t x, size_t y, uint16_t cell_id){
         uint16_t nb = 0;
-        if (x == 0 || lattice(x-1,y) != type) nb++;
-        if (x == lattice.width-1 || lattice(x+1,y) != type) nb++;
-        if (y == 0 || lattice(x,y-1) != type) nb++;
-        if (y == lattice.height-1 || lattice(x,y+1) != type) nb++;
+        if (x == 0 || lattice(x-1,y) != cell_id) nb++;
+        if (x == lattice.width-1 || lattice(x+1,y) != cell_id) nb++;
+        if (y == 0 || lattice(x,y-1) != cell_id) nb++;
+        if (y == lattice.height-1 || lattice(x,y+1) != cell_id) nb++;
         return nb;
+}
+
+void CellularPotts::number_adh(size_t x, size_t y, uint16_t cell_id, uint16_t& adhesion_to_non_invasive, uint16_t& adhesion_to_invasive){
+        uint16_t nb = 0;
+        if (x != 0 && lattice(x-1,y) != cell_id && lattice(x-1,y) != EMPTY){
+                if (cells[lattice(x-1,y)].invasive){
+                        adhesion_to_invasive++;
+                }else {
+                        adhesion_to_non_invasive++;
+                }
+        }
+        if (x != lattice.width-1 && lattice(x+1,y) != cell_id && lattice(x+1,y) != EMPTY){
+                if (cells[lattice(x+1,y)].invasive){
+                        adhesion_to_invasive++;
+                }else {
+                        adhesion_to_non_invasive++;
+                }
+        }
+        if (y != 0 && lattice(x,y-1) != cell_id && lattice(x,y-1) != EMPTY){
+                if (cells[lattice(x,y-1)].invasive){
+                        adhesion_to_invasive++;
+                }else {
+                        adhesion_to_non_invasive++;
+                }
+        }
+        if (y != lattice.height && lattice(x,y+1) != cell_id && lattice(x,y+1) != EMPTY){
+                if (cells[lattice(x,y+1)].invasive){
+                        adhesion_to_invasive++;
+                }else {
+                        adhesion_to_non_invasive++;
+                }
+        }
 }
 
 void CellularPotts::initialize_cells_attributes(){
@@ -172,15 +248,16 @@ void CellularPotts::initialize_cell_attributes(Cell &cell){
         cell.perim = 0;
         for(size_t x = 0; x<lattice.width; x++){
                 for (size_t y = 0; y<lattice.height; y++){
-                        if (lattice(x,y) == cell.type){
+                        if (lattice(x,y) == cell.cell_id){
                                 cell.last_point_x = x;
                                 cell.last_point_y = y;
                                 cell.area++;
-                                uint16_t nb_diff_neigh = number_different_neighbor(x,y,cell.type);
+                                uint16_t nb_diff_neigh = number_different_neighbor(x,y,cell.cell_id);
                                 cell.perim +=  nb_diff_neigh;
                                 if (nb_diff_neigh != 0){
                                         cell.perim2 ++;
                                 }
+                                number_adh(x,y,cell.cell_id,cell.adhesion_to_non_invasive,cell.adhesion_to_invasive);
                                 return;
                         }
                 }

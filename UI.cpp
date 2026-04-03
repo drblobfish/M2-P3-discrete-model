@@ -19,8 +19,8 @@ char iter_per_frame_str[10] = "";
 bool running = false;
 bool step_by_step = false;
 
-uint16_t cell_focus = CellularPotts::EMPTY;
-char cell_focus_info_str[100] = "";
+uint16_t cell_id_focus = CellularPotts::EMPTY;
+char cell_id_focus_info_str[100] = "";
 
 void draw_cell_wall(void){
         for (size_t x = 0; x < cp.lattice.width; x++){
@@ -49,16 +49,19 @@ void process_click_on_cell(void){
         if (!CheckCollisionPointRec(xy,cells_rec)) return;
         size_t x = (size_t) ((xy.x-cells_rec.x)/box_size);
         size_t y = (size_t) ((xy.y-cells_rec.y)/box_size);
-        cell_focus = cp.lattice(x,y);
+        cell_id_focus = cp.lattice(x,y);
 }
 
 void draw_cell_info(void){
-        if (cell_focus == CellularPotts::EMPTY) return;
-        sprintf(cell_focus_info_str,"Cell %d\narea = %d\nperimeter = %d",
-                        cell_focus,
-                        cp.cells[cell_focus].area,
-                        cp.cells[cell_focus].perim2);
-        GuiLabel((Rectangle){ gui_rec.x, gui_rec.y+4*PADDING, gui_rec.width, 5*PADDING }, cell_focus_info_str);
+        if (cell_id_focus == CellularPotts::EMPTY) return;
+        sprintf(cell_id_focus_info_str,"Cell %d\narea = %d\nperimeter = %d\nadh_non_inv = %d\nadh_inv = %d",
+                        cell_id_focus,
+                        cp.cells[cell_id_focus].area,
+                        cp.cells[cell_id_focus].perim2,
+                        cp.cells[cell_id_focus].adhesion_to_non_invasive,
+                        cp.cells[cell_id_focus].adhesion_to_invasive
+                        );
+        GuiLabel((Rectangle){ gui_rec.x, gui_rec.y+4*PADDING, gui_rec.width, 5*PADDING }, cell_id_focus_info_str);
 }
 
 int main(void)
