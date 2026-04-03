@@ -22,22 +22,28 @@ bool step_by_step = false;
 uint16_t cell_id_focus = CellularPotts::EMPTY;
 char cell_id_focus_info_str[100] = "";
 
-void draw_cell_wall(void){
+void draw_cells(void){
         for (size_t x = 0; x < cp.lattice.width; x++){
                 for (size_t y = 0; y < cp.lattice.height; y++){
                         if (cp.lattice(x,y) != CellularPotts::EMPTY)
                                 DrawRectangle(x*box_size,y*box_size,box_size,box_size,PINK);
+                }
+        }
+}
+void draw_cell_walls(void){
+        for (size_t x = 0; x < cp.lattice.width; x++){
+                for (size_t y = 0; y < cp.lattice.height; y++){
                         if (x != cp.lattice.width-1 &&  cp.lattice(x,y) != cp.lattice(x+1,y)){
                                 DrawLineEx(
                                         Vector2{.x = (x+1)*box_size, .y = y*box_size},
                                         Vector2{.x = (x+1)*box_size, .y = (y+1)*box_size},
-                                        1, RED);
+                                        2, RED);
                         }
                         if (y != cp.lattice.height-1 && cp.lattice(x,y) != cp.lattice(x,y+1)){
                                 DrawLineEx(
                                         Vector2{.x = (x)*box_size, .y = (y+1)*box_size},
                                         Vector2{.x = (x+1)*box_size, .y = (y+1)*box_size},
-                                        1, RED);
+                                        2, RED);
                         }
                 }
         }
@@ -69,8 +75,7 @@ int main(void)
         InitWindow(screenWidth, screenHeight, "Cellular Potts Model");
         SetTargetFPS(60);
 
-        cp.lattice(5,5) = 0;
-        cp.cells.push_back(Cell(0));
+        cp.initialize_board(cp.lattice.width/2,cp.lattice.height/2,10,20);
         cp.initialize_cells_attributes();
         cp.H = cp.compute_energy();
 
@@ -113,7 +118,8 @@ int main(void)
                 iter_per_frame = (int) iter_per_frame_f;
                 sprintf(iter_per_frame_str,"%d",iter_per_frame);
                 draw_cell_info();
-                draw_cell_wall();
+                draw_cells();
+                draw_cell_walls();
 
                 EndDrawing();
         }

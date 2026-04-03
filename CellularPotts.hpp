@@ -46,12 +46,12 @@ struct CellularPotts{
         std::vector<Cell> cells;
 
         double target_area = 25;
-        double lambda_area = 1;
+        double lambda_area = 2;
         double target_perim = 10;
-        double lambda_perim = 1;
-        double J_ii = 0;
-        double J_in = 0;
-        double J_nn = -1;
+        double lambda_perim = 2;
+        double J_ii = 2;
+        double J_in = 2;
+        double J_nn = 1;
 
         CellularPotts(size_t width, size_t height);
         size_t sample_int(size_t max);
@@ -61,6 +61,7 @@ struct CellularPotts{
         uint16_t sample_neighbor_state(size_t x, size_t y);
         void MH_step();
 
+        void initialize_board(double center_x, double center_y, double radius, size_t nb_cells);
         void initialize_cells_attributes();
         void initialize_cell_attributes(Cell &cell);
         double compute_energy();

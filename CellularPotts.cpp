@@ -70,6 +70,64 @@ uint16_t CellularPotts::sample_neighbor_state(size_t x, size_t y){
         }
 }
 
+void CellularPotts:: initialize_board(double center_x, double center_y, double radius, size_t nb_cells){
+        for (size_t x = 0; x<lattice.width;x++){
+                for (size_t y = 0; y<lattice.height; y++){
+                        double dx = center_x - x;
+                        double dy = center_y - y;
+                        double r = std::sqrt(dx*dx + dy*dy);
+                        lattice(x,y) = r<=radius ? 0 : EMPTY;
+                }
+        }
+        std::vector<double> meanx = std::vector<double>(nb_cells);
+        std::vector<double> meany = std::vector<double>(nb_cells);
+        for (size_t i = 0; i<nb_cells; i++){
+                do {
+                        meanx[i] = (sample_uniform(r_gen)-0.5)*2*radius + center_x;
+                        meany[i] = (sample_uniform(r_gen)-0.5)*2*radius + center_y;
+                }while (std::sqrt((center_x - meanx[i])*(center_x - meanx[i])+(center_y - meany[i])*(center_y - meany[i])) > radius);
+        }
+        for (size_t i = 0; i< 100; i++){
+                for (size_t x = 0; x<lattice.width;x++){
+                        for (size_t y = 0; y<lattice.height; y++){
+                                if (lattice(x,y) != EMPTY){
+                                        uint16_t best_cell_id = 0;
+                                        double best_dist = 2*radius;
+                                        for (uint16_t j = 0; j<nb_cells; j++){
+                                                double dist = std::sqrt((x-meanx[j])*(x-meanx[j]) + (y-meany[j])*(y-meany[j]));
+                                                if (dist < best_dist){
+                                                        best_cell_id = j;
+                                                        best_dist = dist;
+                                                }
+                                        }
+                                        lattice(x,y) = best_cell_id;
+                                }
+                        }
+                }
+                for (size_t j=0;j<nb_cells;j++){
+                        size_t N = 0;
+                        meanx[j] = 0;
+                        meany[j] = 0;
+                        for (size_t x = 0; x<lattice.width;x++){
+                                for (size_t y = 0; y<lattice.height; y++){
+                                        if (lattice(x,y) == j){
+                                                N++;
+                                                meanx[j] += x;
+                                                meany[j] += y;
+                                        }
+                                }
+                        }
+                        meanx[j] /= N;
+                        meany[j] /= N;
+                }
+        }
+        cells.clear();
+        for (uint16_t i=0; i<nb_cells; i++){
+                cells.push_back(Cell(i));
+        }
+}
+
+
 void CellularPotts::remove_perim2(size_t x, size_t y){
         if (
                 lattice(x,y) != EMPTY &&
@@ -258,7 +316,6 @@ void CellularPotts::initialize_cell_attributes(Cell &cell){
                                         cell.perim2 ++;
                                 }
                                 number_adh(x,y,cell.cell_id,cell.adhesion_to_non_invasive,cell.adhesion_to_invasive);
-                                return;
                         }
                 }
         }
