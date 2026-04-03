@@ -49,7 +49,9 @@ struct CellularPotts{
         double lambda_area = 1;
         double target_perim = 10;
         double lambda_perim = 1;
-
+        double J_ii = 0;
+        double J_in = 0;
+        double J_nn = -1;
 
         CellularPotts(size_t width, size_t height);
         size_t sample_int(size_t max);
@@ -64,6 +66,7 @@ struct CellularPotts{
         double compute_energy();
         double compute_area_energy();
         double compute_perim_energy();
+        double compute_adhesion_energy();
         void remove_perim2(size_t x, size_t y);
         void add_perim2(size_t x, size_t y);
         void number_adh(size_t x, size_t y, uint16_t cell_id, uint16_t& adhesion_to_non_invasive, uint16_t& adhesion_to_invasive);

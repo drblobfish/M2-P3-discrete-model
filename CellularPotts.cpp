@@ -282,10 +282,23 @@ double CellularPotts::compute_perim_energy(){
         return lambda_perim * H_perim;
 }
 
+double CellularPotts::compute_adhesion_energy(){
+        double H_adh = 0;
+        for (Cell& cell : cells){
+                if (cell.invasive){
+                        H_adh += J_ii * cell.adhesion_to_invasive + J_in * cell.adhesion_to_non_invasive;
+                } else {
+                        H_adh += J_in * cell.adhesion_to_invasive + J_nn * cell.adhesion_to_non_invasive;
+                }
+        }
+        return H_adh;
+}
+
 double CellularPotts::compute_energy(){
         double H_area = compute_area_energy();
         double H_perim = compute_perim_energy();
+        double H_adh = compute_adhesion_energy();
 
-        return H_area + H_perim;
+        return H_area + H_perim + H_adh;
 }
 
