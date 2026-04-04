@@ -30,11 +30,11 @@ void draw_cells_texture(void){
         for (size_t x = 0; x < cp.lattice.width; x++){
                 for (size_t y = 0; y < cp.lattice.height; y++){
                         if (cp.lattice(x,y) != CellularPotts::EMPTY){
-                                DrawRectangle(x,y,1,1,PINK);
+                                DrawRectangle(x,y,1,1,cp.cells[cp.lattice(x,y)].invasive ? ORANGE : PINK);
                         }
                         else {
                                 DrawRectangle(x,y,1,1,
-                                        ColorLerp(BLACK,SKYBLUE,cp.S_concentration(x,y)/cp.S_concentration_max));
+                                        ColorLerp(BLACK,SKYBLUE,cp.S_decay * cp.S_concentration(x,y)/cp.S_emit));
                         }
                 }
         }
@@ -70,12 +70,15 @@ void process_click_on_cell(void){
 
 void draw_cell_info(void){
         if (cell_id_focus == CellularPotts::EMPTY) return;
-        sprintf(cell_id_focus_info_str,"Cell %d\narea = %d\nperimeter = %d\nadh_non_inv = %d\nadh_inv = %d",
+        sprintf(cell_id_focus_info_str,"Cell %d\n%s\narea = %d\nperimeter = %d\nperimeter2 = %d\nadh_non_inv = %d\nadh_inv = %d\nS_concentration = %lf",
                         cell_id_focus,
+                        cp.cells[cell_id_focus].invasive ? "invasive" : "non invasive",
                         cp.cells[cell_id_focus].area,
+                        cp.cells[cell_id_focus].perim1,
                         cp.cells[cell_id_focus].perim2,
                         cp.cells[cell_id_focus].adhesion_to_non_invasive,
-                        cp.cells[cell_id_focus].adhesion_to_invasive
+                        cp.cells[cell_id_focus].adhesion_to_invasive,
+                        cp.cells[cell_id_focus].S_concentration
                         );
         GuiLabel((Rectangle){ gui_rec.x, gui_rec.y+4*PADDING, gui_rec.width, 5*PADDING }, cell_id_focus_info_str);
 }

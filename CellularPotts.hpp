@@ -21,10 +21,11 @@ struct Cell{
         uint16_t cell_id;
         bool invasive;
         uint16_t area;
-        uint16_t perim;
+        uint16_t perim1;
         uint16_t perim2;
         uint16_t adhesion_to_non_invasive;
         uint16_t adhesion_to_invasive;
+        double S_concentration;
         size_t last_point_x;
         size_t last_point_y;
 
@@ -40,12 +41,12 @@ struct CellularPotts{
         std::uniform_int_distribution<size_t> _sample_int;
 
         double H;
-        double T = 0.1;
+        double T = 10;
 
         constexpr static uint16_t EMPTY = std::numeric_limits<uint16_t>::max();
         std::vector<Cell> cells;
 
-        double target_area = 25;
+        double target_area = 20;
         double lambda_area = 10;
         double target_perim = 10;
         double lambda_perim = 10;
@@ -63,6 +64,12 @@ struct CellularPotts{
         size_t S_step_freq = 10;
         size_t S_step_counter = 0;
 
+        double t_ni = 1;
+        double t_in = 0.1;
+        double CTMC_dt = 1e-4;
+
+        double mu_S_inv = 1000;
+
         CellularPotts(size_t width, size_t height);
         size_t sample_int(size_t max);
         size_t sample_x();
@@ -72,6 +79,7 @@ struct CellularPotts{
         void MH_step();
 
         void initialize_board();
+        void initialize_S_concentration();
         void initialize_tumor_core(double center_x, double center_y, double radius, size_t nb_cells);
         void initialize_cells_attributes();
         void initialize_cell_attributes(Cell &cell);
@@ -79,12 +87,13 @@ struct CellularPotts{
         double compute_area_energy();
         double compute_perim_energy();
         double compute_adhesion_energy();
+        double compute_chemo_energy();
         void remove_perim2(size_t x, size_t y);
         void add_perim2(size_t x, size_t y);
         void number_adh(size_t x, size_t y, uint16_t cell_id, uint16_t& adhesion_to_non_invasive, uint16_t& adhesion_to_invasive);
-        void remove_adh(size_t x, size_t y);
+        void remove_adh(size_t x1, size_t y1,size_t x2, size_t y2);
         void remove_adh_zone(size_t x, size_t y);
-        void add_adh(size_t x, size_t y);
+        void add_adh(size_t x1, size_t y1,size_t x2, size_t y2);
         void add_adh_zone(size_t x, size_t y);
         void update_lattice(size_t x, size_t y,uint16_t new_state);
         uint16_t number_different_neighbor(size_t x, size_t y, uint16_t cell_id);
@@ -92,5 +101,10 @@ struct CellularPotts{
         void S_step();
         void S_step_point(size_t x, size_t y);
 
+        void CTMC_step_cell(Cell& cell);
+        void CTMC_step();
+        void update_cell_S_concetration();
+        void remove_S_concentration(size_t x, size_t y);
+        void add_S_concentration(size_t x,size_t y);
 };
 
