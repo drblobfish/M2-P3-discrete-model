@@ -1,0 +1,15 @@
+T 0
+target_area 00
+lambda_area 0
+target_perim 00
+lambda_perim 0
+J_ii 0
+J_in 0
+J_nn 0
+S_diffusion 000
+S_decay 0
+S_emit 0
+t_ni 0.0
+t_in 0.00
+mu_S_inv 0
+xi 00

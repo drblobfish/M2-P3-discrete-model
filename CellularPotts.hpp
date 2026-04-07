@@ -72,6 +72,10 @@ struct CellularPotts{
         double mu_S_inv = 0;
         double xi = 40;
 
+        double init_with_I = 0;
+        double init_R = 10;
+        double init_nb_cells = 20;
+
         CellularPotts(size_t width, size_t height);
         size_t sample_int(size_t max);
         size_t sample_x();

@@ -16,12 +16,13 @@ CellularPotts cp {100,100};
 Rectangle cells_rec = {0};
 Rectangle gui_rec = {0};
 
-float iter_per_frame_f = 1;
-int iter_per_frame = 1;
+float iter_per_frame_f = 5000;
+int iter_per_frame = 5000;
 char iter_per_frame_str[10] = "";
-bool running = false;
+bool running = true;
 bool step_by_step = false;
-bool reset = false;
+bool reset = true;
+int total_nb_iter = 0;
 
 bool cell_visible = true;
 
@@ -110,6 +111,9 @@ void parse_param_file(){
                 if (param == "t_in") f >> cp.t_in;
                 if (param == "mu_S_inv") f >> cp.mu_S_inv;
                 if (param == "xi") f >> cp.xi;
+                if (param == "init_with_I") f >> cp.init_with_I;
+                if (param == "init_R") f >> cp.init_R;
+                if (param == "init_nb_cells") f >> cp.init_nb_cells;
         }
 }
 
@@ -125,8 +129,6 @@ int main(int argc, char*argv[])
         {
                 if (reset){
                         cp.initialize_board();
-                        cp.initialize_cells_attributes();
-                        cp.H = cp.compute_energy();
                         reset = false;
                 }
                 if (running){
@@ -137,6 +139,7 @@ int main(int argc, char*argv[])
                                 running = false;
                                 step_by_step = false;
                         }
+                        total_nb_iter += iter_per_frame;
                 }
 
                 screenWidth = GetScreenWidth();
@@ -177,6 +180,7 @@ int main(int argc, char*argv[])
                         0,
                         WHITE);
                 draw_cell_walls();
+                std::cout << "iter = "<< total_nb_iter <<"\n";
 
                 EndDrawing();
         }

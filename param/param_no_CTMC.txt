@@ -9,7 +9,10 @@ J_nn 1
 S_diffusion 500
 S_decay 1
 S_emit 2
-t_ni 0.1
-t_in 0.01
-mu_S_inv 0
+t_ni 0
+t_in 0
+mu_S_inv 40
 xi 40
+init_with_I 0.7
+init_R 10
+init_nb_cells 20

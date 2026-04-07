@@ -74,11 +74,13 @@ uint16_t CellularPotts::sample_neighbor_state(size_t x, size_t y, size_t& nx, si
 
 void CellularPotts::initialize_board(){
         initialize_S_concentration();
-        initialize_tumor_core(lattice.width/2,lattice.height/2,10,20);
-        // lattice(50,50) = 0;
-        // lattice(60,60) = 1;
-        // cells.push_back(Cell(0));
-        // cells.push_back(Cell(1));
+        initialize_tumor_core(lattice.width/2,lattice.height/2,init_R,init_nb_cells);
+        initialize_cells_attributes();
+        for (Cell& cell : cells){
+                double connexion_ratio = (cell.adhesion_to_non_invasive + cell.adhesion_to_invasive)/(double) cell.perim1;
+                if (connexion_ratio < init_with_I) cell.invasive = true;
+        }
+        H = compute_energy();
 }
 
 void CellularPotts::initialize_S_concentration(){
@@ -450,7 +452,6 @@ void CellularPotts::S_step(){
                         S_step_point(x,y);
                 }
         }
-        printf("max S concentration = %f\n",S_concentration_max);
         std::swap(S_concentration.data,S_concentration_back.data);
 }
 
