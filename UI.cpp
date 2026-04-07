@@ -1,3 +1,6 @@
+#include <fstream>
+#include <iostream>
+
 #include "raylib.h"
 #include "CellularPotts.hpp"
 
@@ -20,8 +23,12 @@ bool running = false;
 bool step_by_step = false;
 bool reset = false;
 
+bool cell_visible = true;
+
 uint16_t cell_id_focus = CellularPotts::EMPTY;
 char cell_id_focus_info_str[100] = "";
+
+char *param_file = nullptr;
 
 RenderTexture2D cell_texture;
 
@@ -29,12 +36,12 @@ void draw_cells_texture(void){
         BeginTextureMode(cell_texture);
         for (size_t x = 0; x < cp.lattice.width; x++){
                 for (size_t y = 0; y < cp.lattice.height; y++){
-                        if (cp.lattice(x,y) != CellularPotts::EMPTY){
+                        if (cell_visible && cp.lattice(x,y) != CellularPotts::EMPTY){
                                 DrawRectangle(x,y,1,1,cp.cells[cp.lattice(x,y)].invasive ? ORANGE : PINK);
                         }
                         else {
                                 DrawRectangle(x,y,1,1,
-                                        ColorLerp(BLACK,SKYBLUE,cp.S_decay * cp.S_concentration(x,y)/cp.S_emit));
+                                        ColorLerp(BLACK,SKYBLUE,5*cp.S_concentration(x,y)));
                         }
                 }
         }
@@ -83,8 +90,33 @@ void draw_cell_info(void){
         GuiLabel((Rectangle){ gui_rec.x, gui_rec.y+4*PADDING, gui_rec.width, 5*PADDING }, cell_id_focus_info_str);
 }
 
-int main(void)
+void parse_param_file(){
+        if (param_file == nullptr) return;
+        std::ifstream f(param_file);
+        std::string param;
+        while (f >> param){
+                if (param == "T") f >> cp.T;
+                if (param == "target_area") f >> cp.target_area;
+                if (param == "lambda_area") f >> cp.lambda_area;
+                if (param == "target_perim") f >> cp.target_perim;
+                if (param == "lambda_perim") f >> cp.lambda_perim;
+                if (param == "J_ii") f >> cp.J_ii;
+                if (param == "J_in") f >> cp.J_in;
+                if (param == "J_nn") f >> cp.J_nn;
+                if (param == "S_diffusion") f >> cp.S_diffusion;
+                if (param == "S_decay") f >> cp.S_decay;
+                if (param == "S_emit") f >> cp.S_emit;
+                if (param == "t_ni") f >> cp.t_ni;
+                if (param == "t_in") f >> cp.t_in;
+                if (param == "mu_S_inv") f >> cp.mu_S_inv;
+                if (param == "xi") f >> cp.xi;
+        }
+}
+
+int main(int argc, char*argv[])
 {
+        if (argc == 2) param_file = argv[1];
+        parse_param_file();
         InitWindow(screenWidth, screenHeight, "Cellular Potts Model");
         SetTargetFPS(60);
         cell_texture = LoadRenderTexture(cp.lattice.width, cp.lattice.height);
@@ -132,7 +164,8 @@ int main(void)
                         step_by_step = true;
                         running = true;
                 }
-                GuiSlider(Rectangle{gui_rec.x+ 60,gui_rec.y+ 2* PADDING,gui_rec.width-70,PADDING}, "iter/frame",iter_per_frame_str, &iter_per_frame_f, 1, 1e3);
+                GuiToggle((Rectangle){ gui_rec.x + 8*PADDING, gui_rec.y, PADDING, PADDING }, GuiIconText(ICON_EYE_ON,nullptr),&cell_visible);
+                GuiSlider(Rectangle{gui_rec.x+ 60,gui_rec.y+ 2* PADDING,gui_rec.width-80,PADDING}, "iter/frame",iter_per_frame_str, &iter_per_frame_f, 1, 5e3);
                 iter_per_frame = (int) iter_per_frame_f;
                 sprintf(iter_per_frame_str,"%d",iter_per_frame);
                 draw_cell_info();

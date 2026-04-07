@@ -26,6 +26,7 @@ struct Cell{
         uint16_t adhesion_to_non_invasive;
         uint16_t adhesion_to_invasive;
         double S_concentration;
+        double S_min_concentration;
         size_t last_point_x;
         size_t last_point_y;
 
@@ -41,41 +42,42 @@ struct CellularPotts{
         std::uniform_int_distribution<size_t> _sample_int;
 
         double H;
-        double T = 10;
+        double T = 5;
 
         constexpr static uint16_t EMPTY = std::numeric_limits<uint16_t>::max();
         std::vector<Cell> cells;
 
-        double target_area = 20;
-        double lambda_area = 10;
+        double target_area = 25;
+        double lambda_area = 1;
         double target_perim = 10;
-        double lambda_perim = 10;
-        double J_ii = 0;
-        double J_in = 0;
-        double J_nn = 0;
+        double lambda_perim = 1;
+        double J_ii = 2;
+        double J_in = 2;
+        double J_nn = 1;
 
         Array2d<double> S_concentration;
         Array2d<double> S_concentration_back;
-        double S_diffusion = 100;
+        double S_diffusion = 500;
         double S_decay = 1;
-        double S_emit = 1;
-        double S_dt = 1e-3;
+        double S_emit = 2;
+        double S_dt = 5e-5;
         double S_concentration_max = 1;
-        size_t S_step_freq = 10;
+        size_t S_step_freq = 100;
         size_t S_step_counter = 0;
 
-        double t_ni = 1;
-        double t_in = 0.1;
+        double t_ni = 0.1;
+        double t_in = 0.01;
         double CTMC_dt = 1e-4;
 
-        double mu_S_inv = 1000;
+        double mu_S_inv = 0;
+        double xi = 40;
 
         CellularPotts(size_t width, size_t height);
         size_t sample_int(size_t max);
         size_t sample_x();
         size_t sample_y();
         bool sample_bool();
-        uint16_t sample_neighbor_state(size_t x, size_t y);
+        uint16_t sample_neighbor_state(size_t x, size_t y, size_t& nx, size_t& ny);
         void MH_step();
 
         void initialize_board();

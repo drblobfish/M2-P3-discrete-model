@@ -1,0 +1,15 @@
+T 5
+target_area 25
+lambda_area 1
+target_perim 10
+lambda_perim 1
+J_ii 2
+J_in 2
+J_nn 1
+S_diffusion 500
+S_decay 1
+S_emit 2
+t_ni 0.1
+t_in 0.01
+mu_S_inv 0
+xi 40

@@ -56,19 +56,20 @@ bool CellularPotts::sample_bool(){
         return sample_uniform(r_gen) < 0.5;
 }
 
-uint16_t CellularPotts::sample_neighbor_state(size_t x, size_t y){
+uint16_t CellularPotts::sample_neighbor_state(size_t x, size_t y, size_t& nx, size_t& ny){
         if (sample_bool()){
-                if (x == 0) return lattice(x+1,y);
-                if (x == lattice.width-1) return lattice(x-1,y);
-                if (sample_bool()) return lattice(x+1,y);
-                return lattice(x-1,y);
+                if (x == 0) {nx = x+1; ny = y;}
+                else if (x == lattice.width-1) {nx = x-1; ny = y;}
+                else if (sample_bool()) {nx = x+1; ny = y;}
+                else {nx = x-1; ny = y;}
         }
         else {
-                if (y == 0) return lattice(x,y+1);
-                if (y == lattice.height-1) return lattice(x,y-1);
-                if (sample_bool()) return lattice(x,y+1);
-                return lattice(x,y-1);
+                if (y == 0) {nx = x; ny = y+1;}
+                else if (y == lattice.height-1) {nx = x; ny = y-1;}
+                else if (sample_bool()) {nx = x; ny = y+1;}
+                else {nx = x; ny = y-1;}
         }
+        return lattice(nx,ny);
 }
 
 void CellularPotts::initialize_board(){
@@ -277,10 +278,14 @@ void CellularPotts::MH_step(){
         size_t y = sample_y();
         uint16_t current_state = lattice(x,y);
         // asm("int3");
-        uint16_t new_state = sample_neighbor_state(x,y);
+        size_t neighbor_x;
+        size_t neighbor_y;
+        uint16_t new_state = sample_neighbor_state(x,y,neighbor_x,neighbor_y);
         update_lattice(x,y,new_state);
         double H_new = compute_energy();
+        double chemotactic_bias = xi * (S_concentration(x,y) - S_concentration(neighbor_x,neighbor_y));
         double delta_H = H_new - H;
+        if (new_state != EMPTY && cells[new_state].invasive) delta_H += chemotactic_bias;
         double r = sample_uniform(r_gen);
         if (r >= std::exp(- delta_H/T)){
                 // dont't accept transition : revert state
@@ -400,7 +405,7 @@ double CellularPotts::compute_chemo_energy(){
         double H_chemo = 0;
         for (Cell& cell : cells){
                 if (cell.invasive){
-                        H_chemo += mu_S_inv * cell.S_concentration;
+                        H_chemo += mu_S_inv * cell.S_concentration / cell.area;
                 }
         }
         return H_chemo;
@@ -424,10 +429,19 @@ void CellularPotts::S_step_point(size_t x, size_t y){
         change += - 4*S_concentration(x,y);
         change *= S_diffusion;
         change += - S_decay * S_concentration(x,y);
-        if (lattice(x,y) != EMPTY) change += S_emit;
+        if (lattice(x,y) != EMPTY && (!cells[lattice(x,y)].invasive)) change += S_emit;
         S_concentration_back(x,y) = S_concentration(x,y) + S_dt * change;
         if (S_concentration_back(x,y) > S_concentration_max) S_concentration_max = S_concentration_back(x,y);
 }
+
+/*
+void CellularPotts::S_step_point(size_t x, size_t y){
+        double dx = x - 0.5 * lattice.width;
+        double dy = y - 0.5 * lattice.height;
+        double d = std::sqrt(dx*dx + dy*dy);
+        S_concentration_back(x,y) = 0.2 - 0.005 * d;
+}
+*/
 
 void CellularPotts::S_step(){
         S_concentration_max = 0;
